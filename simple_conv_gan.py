@@ -49,15 +49,16 @@ decoder.add(Dense(1, activation='sigmoid'))
 #sgd1 = SGD(lr=0.01, momentum=0.1)
 sgd1 = RMSprop()
 decoder.compile(loss='binary_crossentropy', optimizer=sgd1)
+dec_opt_state = decoder.optimizer.get_state()
 
 print "Setting up generator"
 generator = Sequential()
 generator.add(Convolution1D(16, 64, input_dim=16, input_length = size_z, border_mode='full'))
-generator.add(LeakyReLU())
+generator.add(LeakyReLU(alpha=0.1))
 #generator.add(BatchNormalization())
 generator.add(UpSample1D(4))
 generator.add(Convolution1D(4, 256, border_mode='full'))
-generator.add(LeakyReLU(alpha=0.0))
+generator.add(LeakyReLU(alpha=0.1))
 #generator.add(BatchNormalization())
 generator.add(UpSample1D(4))
 #(((2048+64-1)*4 + 256 - 1)*4 - 2029 + 1)
@@ -88,6 +89,8 @@ gen_dec.add(decoder)
 sgd3 = RMSprop()
 #sgd3 = SGD(lr=0.01, momentum=0.1)
 gen_dec.compile(loss='binary_crossentropy', optimizer=sgd3)
+gen_dec_opt_state = gen_dec.optimizer.get_state()
+
 
 y_decode = np.ones(2*batch_size)
 y_decode[:batch_size] = 0.
@@ -135,6 +138,8 @@ for i in range(100000):
     xmb = np.array([data[n:n+size_x] for n in np.random.randint(0,data.shape[0]-size_x,batch_size)])
     #xmb = xmb[:,:,np.newaxis]
     if i % 10 == 0:
+        gen_dec.optimizer.set_state(gen_dec_opt_state)
+        decoder.optimizer.set_state(dec_opt_state)
         err_E = 2
         while err_E > 0.9:
             r = gen_dec.fit(zmb,y_gen_dec,nb_epoch=1,verbose=0)
