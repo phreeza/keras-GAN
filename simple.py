@@ -2,6 +2,7 @@
 # adaptation of https://gist.github.com/Newmu/4ee0a712454480df5ee3
 import sys
 sys.path.append('/home/mccolgan/PyCharm Projects/keras')
+sys.path.insert(0,'/home/mccolgan/local/lib/python2.7/site-packages/')
 from keras.models import Sequential
 from keras.layers.core import Dense,Dropout
 from keras.optimizers import SGD
@@ -14,7 +15,7 @@ import theano.tensor as T
 import theano
 import pydub
 
-batch_size = 128*128
+batch_size = 128
 
 print "loading data"
 
@@ -102,7 +103,7 @@ def gaussian_likelihood(X, u=0., s=1.):
 #        plt.savefig('current.png')
 #    plt.pause(0.01)
 
-fig = plt.figure()
+#fig = plt.figure()
 
 for i in range(100000):
     zmb = np.random.uniform(-1, 1, size=(batch_size, 2048)).astype('float32')
@@ -110,13 +111,14 @@ for i in range(100000):
     xmb = np.array([data[n:n+32768] for n in np.random.randint(0,data.shape[0]-32768,batch_size)])
     if i % 10 == 0:
         r = gen_dec.fit(zmb,y_gen_dec,nb_epoch=1,verbose=0)
-        print 'E:',np.exp(r.totals['loss']/batch_size)
+        print 'E:',np.exp(r.totals['loss']/r.totals['seen'])
     else:
         r = decoder.fit(np.vstack([generator.predict(zmb),xmb]),y_decode,nb_epoch=1,verbose=0)
-        print 'D:',np.exp(r.totals['loss']/batch_size)
+        print 'D:',np.exp(r.totals['loss']/r.totals['seen'])
     if i % 100 == 0:
         print "saving fakes"
         fakes = generator.predict(zmb[:16,:])
+        wavfile.write('fake_epoch_'+str(i)+'.wav',44100,fakes[0,:])
         for n in range(16):
             wavfile.write('fake_'+str(n+1)+'.wav',44100,fakes[n,:])
             wavfile.write('real_'+str(n+1)+'.wav',44100,xmb[n,:])
